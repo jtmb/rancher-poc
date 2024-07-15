@@ -1,0 +1,14 @@
+#Container paths
+stack_deploy:
+    - "{{env_file}} docker compose -f /tmp/docker-compose/rancher-node/docker-compose.yml up -d" 
+
+stack_deploy_db:
+    - "{{env_file}} docker compose -f /tmp/docker-compose/db/docker-compose.yml up -d" 
+
+# Cloudflare Subdomains
+cf_service_name:
+    - rancherpoc
+
+
+
+

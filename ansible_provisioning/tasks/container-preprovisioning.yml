@@ -1,0 +1,5 @@
+##### This task set essentially makes required folders withs permissions and copys over necessary container configs
+- name: Copy a compose" files from repo to the remote machine to authenticate git repos on host machine
+  copy:
+    src: "{{homedir}}/docker-compose"
+    dest: "/tmp"

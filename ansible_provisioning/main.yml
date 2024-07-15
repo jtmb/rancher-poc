@@ -1,0 +1,76 @@
+# PRE-provisioning VM
+- name: "Provision Enviorment"
+  strategy: linear
+  hosts: all
+  become: true 
+  tasks:
+  
+  - name: Collect Server IP
+    debug:
+      msg: "{{ ansible_ssh_host }}"
+  - name: Collect Server ARCH
+    debug: 
+       msg: '{{ansible_architecture}}'
+  - name: Install Required Packages
+    import_tasks: tasks/provisioning.yml
+    tags: packages
+  - name: Setup SSH
+    import_tasks: tasks/ssh_setup.yml
+    tags: ssh
+  - name: Setup firewall
+    import_tasks: tasks/ufw.yml
+    tags: ufw
+
+# Containers
+- name: "Build Rancher Cluster (DB)"
+  hosts: worker_node_2
+  become_user: "root"
+  become: true
+  vars_files:
+    - vars/lists.yml
+  tasks:
+
+  - name: Containers Pre-Provision
+    import_tasks: tasks/container-preprovisioning.yml
+    tags: [ containers, pre-prov ]
+
+  - name: Install Containers
+    import_tasks: tasks/ha-database.yml
+    tags:  containers 
+
+
+# Containers
+- name: "Build Rancher Cluster (NODES)"
+  hosts: 
+   - master_node
+   - worker_node_1
+  become_user: "root"
+  become: true
+  vars_files:
+    - vars/lists.yml
+  tasks:
+
+  - name: Containers Pre-Provision
+    import_tasks: tasks/container-preprovisioning.yml
+    tags: [ containers, pre-prov ]
+
+  - name: Install Containers
+    import_tasks: tasks/rancher-node.yml
+    tags:  containers 
+
+- name: "POST PROVISIONING"
+  hosts: all
+  become_user: "root"
+  become: true
+  tasks:
+  - name: Post Provisioning CRON Tasks
+    import_tasks: tasks/cron.yml
+    tags: 
+     - post
+     - cron
+  - name: Update Actions
+    import_tasks: tasks/update_ubuntu.yml
+    tags: update_ubuntu
+  - name: Reboot Actions
+    import_tasks: tasks/reboot.yml
+    tags: reboot

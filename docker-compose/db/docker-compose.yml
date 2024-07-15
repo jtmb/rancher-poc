@@ -1,0 +1,35 @@
+version: '3.1'
+
+services:
+  rancher-db:
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_DATABASE: cattle
+      MYSQL_USER: rancher
+      MYSQL_PASSWORD: rancherprd1234!
+      MYSQL_ROOT_PASSWORD: rancherprd1234!
+    volumes:
+      - ${container_volumes_location}/rancher/db:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    command: --max_allowed_packet=32505856
+
+  # postgres:
+  #   image: postgres:14-alpine
+  #   ports:
+  #     - 5432:5432
+  #   volumes:
+  #     - ${container_volumes_location}/mass/db:/var/lib/postgresql/data
+  #   environment:
+  #     - POSTGRES_PASSWORD=massprd1234!
+  #     - POSTGRES_USER=mass_user
+  #     - POSTGRES_DB=mass
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    environment:
+      PMA_ARBITRARY: 1
+    restart: always
+    ports:
+      - 8086:80

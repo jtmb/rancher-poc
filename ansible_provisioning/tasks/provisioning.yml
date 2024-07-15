@@ -1,0 +1,99 @@
+- name: Set Timezone
+  shell: timedatectl set-timezone America/Toronto
+
+- name: Remove useless packages from the cache
+  apt:
+    autoclean: yes
+
+- name: Remove dependencies that are no longer required
+  apt:
+    autoremove: yes 
+
+- name: Update repositories cache and install packages
+  apt:
+    name: 
+      - net-tools
+      - lshw
+      - openssh-server
+      - fail2ban
+      - ufw
+      - git
+      - cifs-utils
+      - psmisc
+      - resolvconf
+      - nfs-common
+    update_cache: yes
+
+- name: Update repositories cache and ARM Specific packages 
+  become: true
+  become_user: root
+  when: ansible_architecture == "armv7l"
+  apt:
+    name: 
+      - linux-modules-extra-raspi #swarm will not work on pi's without this!!!
+    update_cache: yes
+    
+# Docker Install (proper way)
+- name: Install required system packages for Docker
+  apt: name={{ item }} state=latest update_cache=yes
+  loop: [ 'apt-transport-https', 'ca-certificates', 'curl', 'software-properties-common', 'python3-pip', 'virtualenv', 'python3-setuptools']
+
+- name: Add Docker GPG apt Key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Add Docker Repository
+  apt_repository:
+    repo: deb https://download.docker.com/linux/ubuntu jammy stable
+    state: present
+
+- name: Update apt and install docker-ce
+  apt: update_cache=yes name=docker-ce state=latest
+
+- name: Ensure group "docker" exists
+  ansible.builtin.group:
+    name: docker
+    state: present
+
+- name: adding "{{ssh_user}}" to docker group
+  user:
+    name: "{{ssh_user}}" 
+    groups: 
+      - docker
+      - www-data
+      - nogroup
+    append: yes
+
+- name: Install Docker loki driver plugin
+  tags: loki_driver
+  shell: docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
+  register: driver_status
+  changed_when: driver_status.rc == 0 and "plugin loki:latest already exists" not in driver_status.stderr
+  failed_when: false
+
+- name: Install required system packages for Cockpit
+  apt: name={{ item }} state=latest update_cache=yes
+  loop: [ 'cockpit']
+  tags: cockpit
+
+# Mount SMB Drives
+
+- name: Check if cifs-utils is present
+  tags: smb
+  ansible.builtin.package:
+    name: cifs-utils
+    state: present
+
+
+- name: Ensure Host Controllers are not using pihole DNS #(DNS CONTROLLERS SHOULD NEVER POINT DNS TO ITSELF LOL)
+  lineinfile: 
+    dest: "/etc/resolv.conf"
+    line: '{{ item }}'
+  with_items:
+    - 'nameserver 192.168.0.1'
+    - 'nameserver 8.8.8.8'
+    - 'nameserver 1.1.1.1'
+- name: Apply DNS service
+  tags: dns
+  shell: resolvconf -u

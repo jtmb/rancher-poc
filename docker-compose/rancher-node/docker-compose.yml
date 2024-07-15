@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  rancher-node:
+    image: rancher/server
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - CATTLE_DB_CATTLE_MYSQL_HOST=${worker_node_2}
+      - CATTLE_DB_CATTLE_MYSQL_PORT=3306
+      - CATTLE_DB_CATTLE_MYSQL_USERNAME=rancher
+      - CATTLE_DB_CATTLE_MYSQL_PASSWORD=rancherprd1234!
+      - CATTLE_DB_CATTLE_MYSQL_NAME=cattle
+    command: [ "--advertise-address", "eth0" ]
